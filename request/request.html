@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Search</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <link rel='shortcut icon' type='image/x-icon' href='../icon.ico'/>
+        <link rel="stylesheet" href="../style.css" type="text/css">
+        <script type="text/javascript" lang="javascript" src="request.js"></script>
+    </head>
+    <body class="background-request">
+        <form action="http://localhost:8888/search" class="box" style="height: 300px; margin-top:7%; padding-top:2%;" method="GET" name="requestForm">
+            <h1>Search Book</h1><br>
+            <input type="text" name="title" class="input" style="border-color: rgb(146, 146, 146);" placeholder="Book's title" required autofocus/><br><br>
+            <br><br>
+            <button class="button" name="searchBtn" type="submit">Search</button>
+        </form>
+    </body>
+</html>

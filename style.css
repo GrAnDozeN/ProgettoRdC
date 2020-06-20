@@ -37,8 +37,8 @@ h1, h3, h4, h5 {
     background-image: url(loginPage/l-images/bookshell-sfocato.jpg);
     background-size: cover;
 }
-.background-catalog {
-    background-image: url(catalog/c-images/sfondocatalogo.png);
+.background-request {
+    background-image: url(request/sfondorequest.png);
     background-size: cover;
     background-attachment: fixed;
     background-repeat: no-repeat;
