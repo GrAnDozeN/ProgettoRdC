@@ -34,7 +34,7 @@ h1, h3, h4, h5 {
     letter-spacing: 2px;
 }
 .background {
-    background-image: url(loginPage/l-images/bookshell-sfocato.jpg);
+    background-image: url(sfondosfocato.jpg);
     background-size: cover;
 }
 .background-request {
