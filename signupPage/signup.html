@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Sign Up</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <link rel='shortcut icon' type='image/x-icon' href='../icon.ico'/>
+        <link href="../style.css" rel="stylesheet" type="text/css"/>
+        <script type="text/javascript" lang="javascript" src="signup.js"></script>
+    </head>
+    <body class="background">
+        <form action="" class="box" style="margin-top:3%" method="POST" name="signupForm">
+            <h1>Sign Up</h1><br>
+            <input type="text" name="inputName" class="input" placeholder="Username" required autofocus/><br><br>  
+            <input type="email" name="inputEmail" class="input" placeholder="Email address" required onchange="checkEmail();"/><br><br>
+            <input type="email" name="inputEmailConfirm" class="input" placeholder="Confirm your email address" required onkeyup="checkEmailConf();"/><br><br>
+            <input type="password" name="inputPassword" class="input" placeholder="Password" required onchange="checkPassword();"/><br/><br>
+            <input type="password" name="inputPasswordConfirm" class="input" placeholder="Confirm your password" required onkeyup="checkPasswordConf();"/><br/><br>
+            <br><br>
+            <button class="button" name="signupButton" type="submit">Sign Up</button>
+        </form>
+    </body>
+</html>

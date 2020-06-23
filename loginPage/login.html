@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Login</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <meta name="google-signin-client_id" content="360990063363-2o0q4258h43c2kq0u4jh9cjgemvn0k5f.apps.googleusercontent.com">
+        <script src="https://apis.google.com/js/platform.js?onload=init" async defer></script>
+        <link rel='shortcut icon' type='image/x-icon' href='../icon.ico'/>
+        <link rel="stylesheet" href="../style.css" type="text/css">
+        <script type="text/javascript" lang="javascript" src="login.js"></script>
+        <script src="https://apis.google.com/js/platform.js" async defer></script>
+    </head>
+    <body class="background">
+        <form action="" class="box" style="height: 470px; margin-top:7%;" method="POST" name="loginForm" onSubmit="return validateForm();">
+            <h1>Login</h1><br>
+            <input type="email" name="inputEmail" class="input" placeholder="Email address" required onchange="checkEmail();" autofocus/><br><br>
+            <input type="password" name="inputPassword" class="input" placeholder="Password" required/><br><br>
+            <br><br>
+            <button class="button" name="loginButton" type="submit">Login</button><br>
+            <div class="g-signin2" data-onsuccess="onSignIn"></div>
+            <a href="#" onclick="signOut();">Sign out</a>
+        </form>
+
+        <a href='https://accounts.google.com/o/oauth2/auth?client_id=360990063363-2o0q4258h43c2kq0u4jh9cjgemvn0k5f.apps.googleusercontent.com&scope=https://www.googleapis.com/auth/userinfo.email&redirect_uri=http://localhost:8888/code&response_type=code'>Entra con Google</button>
+<script>
+    console.log('caricando auth2...');
+    gapi.load('auth2', function() {
+      /* Ready. Make a call to gapi.auth2.init or some other API */
+    });
+    console.log('caricato...');
+
+    function signOut() {
+        console.log('Sto uscendo...');
+        var auth2 = gapi.auth2.getAuthInstance();
+        console.log(auth2);
+        auth2.signOut();
+    }
+
+</script>
+        </form>
+    </body>
+</html>
