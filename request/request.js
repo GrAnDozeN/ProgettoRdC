@@ -4,6 +4,7 @@ var express = require('express');
 var app = express();
 var request2server = require('request');
 var bodyparser = require('body-parser');
+const { Client } = require('pg');
 
 //  Var locali
 var port = 8888;
@@ -62,15 +63,6 @@ app.get('/search', function(req, res){
     });
 });
 
-//  Authentication
-
-//app.get('/', function(req, res){
-//
-//	var info = "gesù cristo"
-//    res.send(info+"<br><br><button onclick='window.location.href=\""+ getEmail +"\"'>Log in with Picasa</button>");
-//
-//});
-
 //  Callback (Get Token from Code)
 app.get('/code', function (req, res) {
 
@@ -93,20 +85,50 @@ app.get('/code', function (req, res) {
             //  Pagina dopo aver ottenuto il token
 			res.redirect('http://localhost:5500/request/request.html');
 			my_obj=JSON.parse(body);
-			token = my_obj.access_token;
-            console.log("The token is: "+token);
+            token = my_obj.access_token;
+            console.log("\n");
             
             //  Richiesta per la email dell'utente appena loggato
             request2server.get({
-                headers: 	headers,	    //informazioni che invio all’Authorization Server
+
+                //informazioni che invio all’Authorization Server
+                headers: 	headers,	    
                 url:     	"https://www.googleapis.com/oauth2/v1/userinfo?access_token=" + token,
         
-                }, function(error, response, body){
-                    //console.log(body);		
+                }, function(error, response, body) {
                     
                     my_obj=JSON.parse(body);
                     user = my_obj.email;
                     console.log("Email utente loggato: " + user);
+
+                    const client = new Client({
+                        user: 'postgres',
+                        host: process.env.HOST,
+                        database: process.env.DATABASE,
+                        password: process.env.PASSWORD,
+                        port: process.env.PORT,
+                    });
+                    
+                    //  Connessione a database Postgres
+                    client.connect(function(err){
+                        if (err) {
+                          console.error('Connessione non stabilita - error: ', err.stack)
+                        } else {
+                          console.log('Connessione al DB stabilita')
+                        }
+                    });
+                    
+                    //  Inserimento email nel database
+                    const queryy = "INSERT INTO users (email, password) SELECT * FROM (SELECT '" + user + "', 'null') WHERE NOT EXISTS (SELECT email FROM users WHERE email = '" + user + "') LIMIT 1;"
+                    client.query(queryy, function(err, res) {
+
+                        if (err) {
+                            console.error("Inserimento fallito: " + err);
+                            return;
+                        } else 
+                            console.error("Inserimento avvenuto con successo: " + user);
+                        client.end();
+                    });
                 });
         });
 });
