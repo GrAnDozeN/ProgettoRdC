@@ -1,22 +1,96 @@
 require('dotenv').config();
 
 var express = require('express');
+var session = require('express-session');
 var app = express();
 var request2server = require('request');
 var bodyparser = require('body-parser');
 const { Client } = require('pg');
+var passport = require("passport");
+var LocalStrategy = require('passport-local-token').Strategy;
+
+
 
 //  Var locali
 var port = 8888;
 var code = "";
 var token = "";
-var client_id = process.env.ID_APP_G; 			// fill-in
-var client_secret = process.env.CLIENT_SECRET_G; 	// fill-in
+var client_id = process.env.ID_APP_G; 			
+var client_secret = process.env.CLIENT_SECRET_G; 	
 var getEmail = "https://accounts.google.com/o/oauth2/auth?client_id="+client_id+"&scope=https://www.googleapis.com/auth/userinfo.email&redirect_uri=http://localhost:8888/code&response_type=code";
 var user="";
 
+
+
+app.use(session({
+	secret: 'secret',
+	resave: true,
+	saveUninitialized: true
+}));
+/*app.use(session({ secret: "cats" }));
+app.use(passport.initialize());
+app.use(passport.session());*/
+
+/*passport.use('local-token', new LocalStrategy(
+    function(token, done) {
+        AccessToken.findOne({
+            id: token
+        }, function(error, accessToken) {
+            if (error) {
+                console.log("errore all'authentication");
+                return done(error);
+            }
+  
+            if (accessToken) {
+                console.log("entro in authentication...");
+                if (!token.isValid(accessToken)) {
+                    return done(null, false);
+                }
+  
+                User.findOne({
+                    id: accessToken.userId
+                }, function(error, user) {
+                    if (error) {
+                        console.log("errore [2] all'authentication");
+                        return done(error);
+                    }
+  
+                    if (!user) {
+                        return done(null, false);
+                    }
+                    console.log("errore [3] all'authentication");
+                    
+                    return done(null, user);
+                });
+            } else {
+                console.log("Errore completo");
+                return done(null);
+            }
+        });
+    }
+));*/
+
+
+//  Parte di autenticazione
+/*app.post('/passport/auth',
+    passport.authenticate('local-token', {
+        session: false,
+        optional: false
+    }),
+    function(req, res) {
+        console.log("authenticated!");
+        res.redirect('homePage/homepage.html');
+    }
+);*/
+
+
 //  Ricerca libro
 app.get('/search', function(req, res){
+    if(!req.session.loggedin){
+        res.redirect("http://localhost:5500/loginPage/login.html");
+        return;
+    }
+    
     var quer = "";
     if (req.query.title)
         quer+= ("+intitle:" + req.query.title);
@@ -63,8 +137,17 @@ app.get('/search', function(req, res){
     });
 });
 
+
+
+
+
+
+
 //  Callback (Get Token from Code)
 app.get('/code', function (req, res) {
+
+    //  Sessione
+
 
     //  Var iniziali
     code = req.query.code;
@@ -83,11 +166,59 @@ app.get('/code', function (req, res) {
 		}, function(error, response, body){
             
             //  Pagina dopo aver ottenuto il token
-			res.redirect('http://localhost:5500/request/request.html');
+            //res.redirect('http://localhost:5500/request/request.html');
 			my_obj=JSON.parse(body);
             token = my_obj.access_token;
             console.log("\n");
+            /*passport.authenticate('local-token', {
+                tokenField: my_obj.access_token,
+                session: false,
+                optional: false,
+                successRedirect: 'http://localhost:5500/homePage/homepage.html',
+                failureRedirect: 'http://localhost:5500/loginPage/loginPage.html',
+                failureFlash: true,
+            }),*/
             
+            //done(null, false, { message: 'Incorrect password.' });
+            /*new LocalStrategy(function(token, done) {
+                AccessToken.findOne({
+                    id: my_obj.access_token
+                }, function(error, accessToken) {
+                    if (error) {
+                        console.log("errore all'authentication");
+                        return done(error);
+                    }
+            
+                    if (accessToken) {
+                        console.log("entro in authentication...");
+                        if (!token.isValid(accessToken)) {
+                            return done(null, false);
+                        }
+            
+                        User.findOne({
+                            id: accessToken.userId
+                        }, function(error, user) {
+                            if (error) {
+                                console.log("errore [2] all'authentication");
+                                return done(error);
+                            }
+            
+                            if (!user) {
+                                return done(null, false);
+                            }
+                            console.log("errore [3] all'authentication");
+                            
+                            return done(null, user);
+                        });
+                    } else {
+                        console.log("Errore completo");
+                        return done(null);
+                    }
+                });
+            });*/
+
+
+
             //  Richiesta per la email dell'utente appena loggato
             request2server.get({
 
@@ -100,6 +231,11 @@ app.get('/code', function (req, res) {
                     my_obj=JSON.parse(body);
                     user = my_obj.email;
                     console.log("Email utente loggato: " + user);
+
+                    req.session.loggedin = true;
+                    req.session.username = user;
+                    console.log("Session: log_" + req.session.loggedin + " <> user_"+ req.session.username);
+                    res.redirect('http://localhost:5500/request/request.html');
 
                     const client = new Client({
                         user: 'postgres',
@@ -119,7 +255,7 @@ app.get('/code', function (req, res) {
                     });
                     
                     //  Inserimento email nel database
-                    const queryy = "INSERT INTO users (email, password) SELECT * FROM (SELECT '" + user + "', 'null') WHERE NOT EXISTS (SELECT email FROM users WHERE email = '" + user + "') LIMIT 1;"
+                    const queryy = "INSERT INTO users (email, password) SELECT * FROM (SELECT '" + user + "', 'null') AS Tmp WHERE NOT EXISTS (SELECT email FROM users WHERE email = '" + user + "') LIMIT 1;"
                     client.query(queryy, function(err, res) {
 
                         if (err) {
@@ -130,10 +266,12 @@ app.get('/code', function (req, res) {
                         client.end();
                     });
                 });
+            //res.redirect("/passport/auth?token=" + token);
         });
+
 });
 
-var server = app.listen(8888, function(){
+var server = app.listen(port, function(){
     var host = server.address().address;
     var port = server.address().port;
 
