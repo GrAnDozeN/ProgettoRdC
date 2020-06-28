@@ -18,7 +18,9 @@
     "express-session": "^1.17.1",
     "passport": "0.4.1",
     "passport-local-token": "1.0.1",
-    "connect-ensure-login": "^0.1.1"
+    "connect-ensure-login": "^0.1.1",
+    "websocket": "1.0.31",
+    "http": "0.0.1-security"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"

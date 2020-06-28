@@ -9,7 +9,12 @@ const { Client } = require('pg');
 var passport = require("passport");
 var LocalStrategy = require('passport-local-token').Strategy;
 
+/*var books = require("./books");
+var auth = require("./authentication");
 
+app.use("/books", books);
+app.use("/auth", auth);
+*/
 
 //  Var locali
 var port = 8888;
@@ -21,12 +26,12 @@ var getEmail = "https://accounts.google.com/o/oauth2/auth?client_id="+client_id+
 var user="";
 
 
-
 app.use(session({
 	secret: 'secret',
 	resave: true,
 	saveUninitialized: true
 }));
+
 /*app.use(session({ secret: "cats" }));
 app.use(passport.initialize());
 app.use(passport.session());*/
@@ -139,15 +144,10 @@ app.get('/search', function(req, res){
 
 
 
-
-
-
-
 //  Callback (Get Token from Code)
 app.get('/code', function (req, res) {
 
     //  Sessione
-
 
     //  Var iniziali
     code = req.query.code;
@@ -229,12 +229,12 @@ app.get('/code', function (req, res) {
                 }, function(error, response, body) {
                     
                     my_obj=JSON.parse(body);
-                    user = my_obj.email;
-                    console.log("Email utente loggato: " + user);
+                    email = my_obj.email;
+                    console.log("Email utente loggato: " + email);
 
                     req.session.loggedin = true;
-                    req.session.username = user;
-                    console.log("Session: log_" + req.session.loggedin + " <> user_"+ req.session.username);
+                    req.session.email = email;
+                    console.log("Session: log_" + req.session.loggedin + " <> user_"+ req.session.email);
                     res.redirect('http://localhost:5500/request/request.html');
 
                     const client = new Client({
@@ -255,14 +255,14 @@ app.get('/code', function (req, res) {
                     });
                     
                     //  Inserimento email nel database
-                    const queryy = "INSERT INTO users (email, password) SELECT * FROM (SELECT '" + user + "', 'null') AS Tmp WHERE NOT EXISTS (SELECT email FROM users WHERE email = '" + user + "') LIMIT 1;"
+                    const queryy = "INSERT INTO users (email, password) SELECT * FROM (SELECT '" + email + "', 'null') AS Tmp WHERE NOT EXISTS (SELECT email FROM users WHERE email = '" + email + "') LIMIT 1;"
                     client.query(queryy, function(err, res) {
 
                         if (err) {
                             console.error("Inserimento fallito: " + err);
                             return;
                         } else 
-                            console.error("Inserimento avvenuto con successo: " + user);
+                            console.error("Inserimento avvenuto con successo: " + email);
                         client.end();
                     });
                 });
@@ -277,3 +277,81 @@ var server = app.listen(port, function(){
 
     console.log('Server in ascolto su http://%s:%s', host, port);
 });
+
+/*
+//-----------------------------------------------------------------
+
+var WebSocketServer = require('websocket').server;
+var http = require('http');
+
+var server = http.createServer(function(request, response) {
+  // process HTTP request. Since we're writing just WebSockets
+  // server we don't have to implement anything.
+});
+server.listen(1337, function() { });
+
+// create the server
+wsServer = new WebSocketServer({
+  httpServer: server
+});
+
+// WebSocket server
+wsServer.on('request', function(request) {
+  var connection = request.accept(null, request.origin);
+
+  // This is the most important callback for us, we'll handle
+  // all messages from users here.
+  connection.on('message', function(message) {
+    if (message.type === 'utf8') {
+      // process WebSocket message
+    }
+  });
+
+  connection.on('close', function(connection) {
+    // close user connection
+  });
+});
+
+//---------------------------------------------------------------
+
+// Port where we'll run the websocket server
+var webSocketsServerPort = 1337;
+// websocket and http servers
+var webSocketServer = require('websocket').server;
+var http = require('http');
+
+//HTTP server
+ 
+var server = http.createServer(function(request, response) {
+    // Not important for us. We're writing WebSocket server,
+    // not HTTP server
+  });
+  server.listen(webSocketsServerPort, function() {
+    console.log((new Date()) + " Server is listening on port "
+        + webSocketsServerPort);
+  });
+
+  //WebSocket server
+  var wsServer = new webSocketServer({
+    // WebSocket server is tied to a HTTP server. WebSocket
+    // request is just an enhanced HTTP request. For more info 
+    // http://tools.ietf.org/html/rfc6455#page-6
+    httpServer: server
+  });
+  // This callback function is called every time someone
+  // tries to connect to the WebSocket server
+  wsServer.on('request', function(request) {
+    console.log((new Date()) + ' Connection from origin '
+        + request.origin + '.');
+  });
+
+  // accept connection - you should check 'request.origin' to
+  // make sure that client is connecting from your website
+  // (http://en.wikipedia.org/wiki/Same_origin_policy)
+  var connection = request.accept(null, request.origin); 
+  // we need to know client index to remove them on 'close' event
+  var index = clients.push(connection) - 1;
+  var userName = false;
+  console.log((new Date()) + ' Connection accepted.');
+*/
+
