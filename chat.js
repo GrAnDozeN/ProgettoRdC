@@ -1,115 +1,116 @@
-"use strict";
-// Optional. You will see this name in eg. 'ps' or 'top' command
-process.title = 'node-chat';
-// Port where we'll run the websocket server
-var webSocketsServerPort = 1337;
-// websocket and http servers
-var webSocketServer = require('websocket').server;
-var http = require('http');
-/**
- * Global variables
- */
-// latest 100 messages
-var history = [ ];
-// list of currently connected clients (users)
-var clients = [ ];
-/**
- * Helper function for escaping input strings
- */
-function htmlEntities(str) {
-  return String(str)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-// Array with some colors
-var colors = [ 'red', 'green', 'blue', 'magenta', 'purple', 'plum', 'orange' ];
-// ... in random order
-colors.sort(function(a,b) { return Math.random() > 0.5; } );
-/**
- * HTTP server
- */
-var server = http.createServer(function(request, response) {
-  // Not important for us. We're writing WebSocket server,
-  // not HTTP server
-});
-var tempServer = server.listen(webSocketsServerPort, function() {
-    var host = server.address().address;
-    var port = server.address().port;
+$(document).ready(function () {
+    "use strict";  // for better performance - to avoid searching in DOM
+    var content = $('#content');
+    var input = $('#input');
+    var status = $('#status');  // my color assigned by the server
+    var myColor = false;
+    // my name sent to the server
+    var myName = false;  // if user is running mozilla then use it's built-in WebSocket
+    window.WebSocket = window.WebSocket || window.MozWebSocket;  // if browser doesn't support WebSocket, just show
+    // some notification and exit
+    if (!window.WebSocket) {
+        content.html($('<p>',
+            { text:'Sorry, but your browser doesn\'t support WebSocket.'}
+        ));
+        input.hide();
+        $('span').hide();
+        return;
+    }  // open connection
+    var connection = new WebSocket('ws://localhost:1337');  
 
-    console.log((new Date()) + " Server is listening on port "
-        + webSocketsServerPort + " -> IP: " + host +":" + port);
-});
-/**
- * WebSocket server
- */
-var wsServer = new webSocketServer({
-  // WebSocket server is tied to a HTTP server. WebSocket
-  // request is just an enhanced HTTP request. For more info 
-  // http://tools.ietf.org/html/rfc6455#page-6
-  httpServer: server
-});
-// This callback function is called every time someone
-// tries to connect to the WebSocket server
-wsServer.on('request', function(request) {
-  console.log((new Date()) + ' Connection from origin '
-      + request.origin + '.');
-  // accept connection - you should check 'request.origin' to
-  // make sure that client is connecting from your website
-  // (http://en.wikipedia.org/wiki/Same_origin_policy)
-  var connection = request.accept(null, request.origin); 
-  // we need to know client index to remove them on 'close' event
-  var index = clients.push(connection) - 1;
-  var userName = false;
-  var userColor = false;
-  console.log((new Date()) + ' Connection accepted.');
-  // send back chat history
-  if (history.length > 0) {
-    connection.sendUTF(
-        JSON.stringify({ type: 'history', data: history} ));
-  }
-  // user sent some message
-  connection.on('message', function(message) {
-    if (message.type === 'utf8') { // accept only text
-    // first message sent by user is their name
-     if (userName === false) {
-        // remember user name
-        userName = htmlEntities(message.utf8Data);
-        // get random color and send it back to the user
-        userColor = colors.shift();
-        connection.sendUTF(
-            JSON.stringify({ type:'color', data: userColor }));
-        console.log((new Date()) + ' User is known as: ' + userName
-                    + ' with ' + userColor + ' color.');
-      } else { // log and broadcast the message
-        console.log((new Date()) + ' Received Message from '
-                    + userName + ': ' + message.utf8Data);
-        
-        // we want to keep history of all sent messages
-        var obj = {
-          time: (new Date()).getTime(),
-          text: htmlEntities(message.utf8Data),
-          author: userName,
-          color: userColor
-        };
-        history.push(obj);
-        history = history.slice(-100);
-        // broadcast message to all connected clients
-        var json = JSON.stringify({ type:'message', data: obj });
-        for (var i=0; i < clients.length; i++) {
-          clients[i].sendUTF(json);
+    //  NameChat -> da sistemare
+    connection.onopen = function () {
+        if(sessionStorage.chatName){
+            connection.send(sessionStorage.chatName);
+        } else {
+            console.log("nome NON esistente");
+
+            status.text('Choose name:');
         }
-      }
-    }
-  });
-  // user disconnected
-  connection.on('close', function(connection) {
-    if (userName !== false && userColor !== false) {
-      console.log((new Date()) + " Peer "
-          + connection.remoteAddress + " disconnected.");
-      // remove user from the list of connected clients
-      clients.splice(index, 1);
-      // push back user's color to be reused by another user
-      colors.push(userColor);
-    }
-  });
-});
+
+        // first we want users to enter their names
+        input.removeAttr('disabled');
+    };  
+
+    connection.onerror = function (error) {
+        // just in there were some problems with connection...
+        content.html($('<p>', {
+            text: 'Sorry, but there\'s some problem with your '
+            + 'connection or the server is down.\n'
+        }));
+    };
+    
+    // most important part - incoming messages
+    connection.onmessage = function (message) {
+        // try to parse JSON message. Because we know that the server
+        // always returns JSON this should work without any problem but
+        // we should make sure that the massage is not chunked or
+        // otherwise damaged.
+        try {
+            var json = JSON.parse(message.data);
+        } catch (e) {
+            console.log('Invalid JSON: ', message.data);
+            return;
+        }    // NOTE: if you're not sure about the JSON structure
+        // check the server source code above
+        // first response from the server with user's color
+        if (json.type === 'color') { 
+            myColor = json.data;
+            status.text(myName + ': ').css('color', myColor);
+            input.removeAttr('disabled').focus();
+            // from now user can start sending messages
+        } else if (json.type === 'history') { // entire message history
+            // insert every single message to the chat window
+            for (var i=0; i < json.data.length; i++) {
+            addMessage(json.data[i].author, json.data[i].text,
+                json.data[i].color, new Date(json.data[i].time));
+            }
+        } else if (json.type === 'message') { // it's a single message
+            // let the user write another message
+            input.removeAttr('disabled'); 
+            addMessage(json.data.author, json.data.text,
+                    json.data.color, new Date(json.data.time));
+        } else {
+            console.log('Hmm..., I\'ve never seen JSON like this:', json);
+        }
+    };  /**
+    * Send message when user presses Enter key
+    */
+    input.keydown(function(e) {
+        if (e.keyCode === 13) {
+            var msg = $(this).val();
+            if (!msg) {
+                return;
+            }
+            // send the message as an ordinary text
+            connection.send(msg);
+            $(this).val('');
+            // disable the input field to make the user wait until server
+            // sends back response
+            input.attr('disabled', 'disabled');      // we know that the first message sent from a user their name
+            if (myName === false) {
+                myName = msg;
+                sessionStorage.chatName = msg;
+            }
+        }
+    });  /**
+        * This method is optional. If the server wasn't able to
+        * respond to the in 3 seconds then show some error message 
+        * to notify the user that something is wrong.
+        */
+    setInterval(function() {
+        if (connection.readyState !== 1) {
+            status.text('Error');
+        }
+    }, 3000);  /**
+    * Add message to the chat window
+    */
+    function addMessage(author, message, color, dt) {
+        content.prepend('<p><span style="color:' + color + '">'
+            + author + '</span> @ ' + (dt.getHours() < 10 ? '0'
+            + dt.getHours() : dt.getHours()) + ':'
+            + (dt.getMinutes() < 10
+                ? '0' + dt.getMinutes() : dt.getMinutes())
+            + ': ' + message + '</p>');
+        }
+    });

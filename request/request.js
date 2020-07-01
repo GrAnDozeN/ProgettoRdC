@@ -88,6 +88,12 @@ app.use(passport.session());*/
     }
 );*/
 
+/*app.use(express.static('request'));
+
+app.get("/prova", function(req, res){
+    res.sendFile('request.html', {root: __dirname });
+    
+})*/
 
 //  Ricerca libro
 app.get('/search', function(req, res){

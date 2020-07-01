@@ -5,7 +5,8 @@
   "main": "request/request.js",
   "scripts": {
     "prestart": "npm install",
-    "start": "node request/request.js"
+    "start": "node request/request.js",
+    "dev": "nodemon request/request.js"
   },
   "license": "Unlicense",
   "private": true,
