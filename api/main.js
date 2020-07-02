@@ -5,10 +5,10 @@ var session = require('express-session');
 var app = express();
 
 var books = require("./books");
-var auth = require("./authentication");
+//var auth = require("./authentication");
 
 app.use("/books", books);
-app.use("/auth", auth);
+//app.use("/auth", auth);
 
 
 //  Var locali
@@ -20,6 +20,28 @@ app.use(session({
 	saveUninitialized: true
 }));
 
+function settingLog(req){
+  req.session.loggedin = true;
+  req.session.email = email;
+}
+
+module.exports = {
+  settingLog
+}
+
+app.get("/searchPage", function(req,res){
+  console.log("Richiesta pagina di ricerca");
+  if(!req.session.loggedin){
+      console.log("Richiesta NEGATA");
+      res.redirect("http://localhost:5500/loginPage/login.html");
+      return;
+  } else {
+      console.log("Richiesta ACCONSENTITA");
+      res.redirect("http://localhost:5500/request/request.html")
+  }
+  console.log();
+});
+
 var server = app.listen(port, function(){
     var host = server.address().address;
     var port = server.address().port;
@@ -27,81 +49,92 @@ var server = app.listen(port, function(){
     console.log('Server in ascolto su http://%s:%s', host, port);
 });
 
+var code = "";
+var token = "";
+var client_id = process.env.ID_APP_G; 			
+var client_secret = process.env.CLIENT_SECRET_G; 	
 
-//-----------------------------------------------------------------
+var express = require('express');
+var session = require('express-session');
+var app = express();
+var request2server = require('request');
+const { Client } = require('pg');
 
-var WebSocketServer = require('websocket').server;
-var http = require('http');
+//  Callback (Get Token from Code)
+app.get('/auth/code', function (req, res) {
 
-var server = http.createServer(function(request, response) {
-  // process HTTP request. Since we're writing just WebSockets
-  // server we don't have to implement anything.
+  //  Sessione
+
+  //  Var iniziali
+  code = req.query.code;
+  var url = 'https://www.googleapis.com/oauth2/v3/token';
+var headers = {'Content-Type': 'application/x-www-form-urlencoded'};
+var body = "code="+code+"&client_id="+client_id+"&client_secret="+client_secret+"&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Fcode&grant_type=authorization_code";
+  
+  //  Chiamata a API: Google OAuth 2 (per l'autenticazione)
+  request2server.post({
+
+      //informazioni che invio all’Authorization Server
+  headers: headers,
+  url: url,		    
+  body: body		    
+
+  }, function(error, response, body){
+          
+          //  Pagina dopo aver ottenuto il token
+          //res.redirect('http://localhost:5500/request/request.html');
+    my_obj=JSON.parse(body);
+          token = my_obj.access_token;
+          console.log("\n");
+
+          //  Richiesta per la email dell'utente appena loggato
+          request2server.get({
+
+              //informazioni che invio all’Authorization Server
+              headers: 	headers,	    
+              url:     	"https://www.googleapis.com/oauth2/v1/userinfo?access_token=" + token,
+      
+              }, function(error, response, body) {
+                  
+                  my_obj=JSON.parse(body);
+                  email = my_obj.email;
+                  console.log("Email utente loggato: " + email);
+
+                  req.session.loggedin = true;
+                  req.session.email = email;
+                  console.log("Session: log_" + req.session.loggedin + " <> user_"+ req.session.email);
+                  res.redirect('http://localhost:5500/request/request.html');
+
+                  const client = new Client({
+                      user: 'postgres',
+                      host: process.env.HOST,
+                      database: process.env.DATABASE,
+                      password: process.env.PASSWORD,
+                      port: process.env.PORT,
+                  });
+                  
+                  //  Connessione a database Postgres
+                  client.connect(function(err){
+                      if (err) {
+                        console.error('Connessione non stabilita - error: ', err.stack)
+                      } else {
+                        console.log('Connessione al DB stabilita')
+                      }
+                  });
+                  
+                  //  Inserimento email nel database
+                  const queryy = "INSERT INTO users (email, password) SELECT * FROM (SELECT '" + email + "', 'null') AS Tmp WHERE NOT EXISTS (SELECT email FROM users WHERE email = '" + email + "') LIMIT 1;"
+                  client.query(queryy, function(err, res) {
+
+                      if (err) {
+                          console.error("Inserimento fallito: " + err);
+                          return;
+                      } else 
+                          console.error("Inserimento avvenuto con successo: " + email);
+                      client.end();
+                  });
+              });
+          //res.redirect("/passport/auth?token=" + token);
+      });
+
 });
-server.listen(port, function() { });
-
-// create the server
-wsServer = new WebSocketServer({
-  httpServer: server
-});
-
-// WebSocket server
-wsServer.on('request', function(request) {
-  var connection = request.accept(null, request.origin);
-
-  // This is the most important callback for us, we'll handle
-  // all messages from users here.
-  connection.on('message', function(message) {
-    if (message.type === 'utf8') {
-      // process WebSocket message
-    }
-  });
-
-  connection.on('close', function(connection) {
-    // close user connection
-  });
-});
-
-//---------------------------------------------------------------
-
-// Port where we'll run the websocket server
-var webSocketsServerPort = 1337;
-// websocket and http servers
-var webSocketServer = require('websocket').server;
-var http = require('http');
-
-/**
- * HTTP server
- */
-var server = http.createServer(function(request, response) {
-    // Not important for us. We're writing WebSocket server,
-    // not HTTP server
-  });
-  server.listen(webSocketsServerPort, function() {
-    console.log((new Date()) + " Server is listening on port "
-        + webSocketsServerPort);
-  });
-  /**
-   * WebSocket server
-   */
-  var wsServer = new webSocketServer({
-    // WebSocket server is tied to a HTTP server. WebSocket
-    // request is just an enhanced HTTP request. For more info 
-    // http://tools.ietf.org/html/rfc6455#page-6
-    httpServer: server
-  });
-  // This callback function is called every time someone
-  // tries to connect to the WebSocket server
-  wsServer.on('request', function(request) {
-    console.log((new Date()) + ' Connection from origin '
-        + request.origin + '.');
-  });
-
-  // accept connection - you should check 'request.origin' to
-  // make sure that client is connecting from your website
-  // (http://en.wikipedia.org/wiki/Same_origin_policy)
-  var connection = request.accept(null, request.origin); 
-  // we need to know client index to remove them on 'close' event
-  var index = clients.push(connection) - 1;
-  var userName = false;
-  console.log((new Date()) + ' Connection accepted.');
-

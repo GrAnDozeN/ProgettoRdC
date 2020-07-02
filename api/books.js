@@ -8,13 +8,10 @@ var bodyparser = require('body-parser');
 
 router.use(bodyparser.json());
 
+
+
 //  Ricerca libro
-router.get('/search', function(req, res){
-    if(!req.session.loggedin){
-        res.redirect("http://localhost:5500/loginPage/login.html");
-        return;
-    }
-    
+router.get('/search', function(req, res){    
     var quer = "";
     if (req.query.title)
         quer+= ("+intitle:" + req.query.title);
@@ -43,12 +40,10 @@ router.get('/search', function(req, res){
 
                 for (var i=0; i < l; i++) {
                     if (jsonBody.items[i].volumeInfo.hasOwnProperty("imageLinks")) {
-                        console.log("img %s trovata", i);
                         var link = jsonBody.items[i].volumeInfo.infoLink;
                         var img = jsonBody.items[i].volumeInfo.imageLinks.thumbnail;
                         imageLists += '<a href="' + link + '"><img style="height:200px; margin-right:30px; margin-bottom:30px; border:solid black 1px; border-radius:5px" src="' + img + '"></a>';
-                    } else 
-                        console.log ("img %s non trovata", i);
+                    }
                 }
 
                 res.send(imageLists);

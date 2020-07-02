@@ -22,9 +22,8 @@ $(document).ready(function () {
     connection.onopen = function () {
         if(sessionStorage.chatName){
             connection.send(sessionStorage.chatName);
+            myName = sessionStorage.chatName;
         } else {
-            console.log("nome NON esistente");
-
             status.text('Choose name:');
         }
 
@@ -89,8 +88,16 @@ $(document).ready(function () {
             // sends back response
             input.attr('disabled', 'disabled');      // we know that the first message sent from a user their name
             if (myName === false) {
-                myName = msg;
-                sessionStorage.chatName = msg;
+                if (msg) {
+                    myName = msg;
+                    sessionStorage.chatName = msg;
+                }
+                else {
+                    myName = sessionStorage.chatName;
+                }
+            }
+            else {
+                myName = sessionStorage.chatName;
             }
         }
     });  /**

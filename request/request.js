@@ -16,13 +16,17 @@ app.use("/books", books);
 app.use("/auth", auth);
 */
 
+
+app.use(express.json());       // to support JSON-encoded bodies
+app.use(express.urlencoded()); // to support URL-encoded bodies
+
 //  Var locali
 var port = 8888;
 var code = "";
 var token = "";
 var client_id = process.env.ID_APP_G; 			
 var client_secret = process.env.CLIENT_SECRET_G; 	
-var getEmail = "https://accounts.google.com/o/oauth2/auth?client_id="+client_id+"&scope=https://www.googleapis.com/auth/userinfo.email&redirect_uri=http://localhost:8888/code&response_type=code";
+var getEmail = "https://accounts.google.com/o/oauth2/auth?client_id="+client_id+"&scope=https://www.googleapis.com/auth/userinfo.email&redirect_uri=http://localhost:8888/&response_type=code";
 var user="";
 
 
@@ -32,68 +36,19 @@ app.use(session({
 	saveUninitialized: true
 }));
 
-/*app.use(session({ secret: "cats" }));
-app.use(passport.initialize());
-app.use(passport.session());*/
-
-/*passport.use('local-token', new LocalStrategy(
-    function(token, done) {
-        AccessToken.findOne({
-            id: token
-        }, function(error, accessToken) {
-            if (error) {
-                console.log("errore all'authentication");
-                return done(error);
-            }
-  
-            if (accessToken) {
-                console.log("entro in authentication...");
-                if (!token.isValid(accessToken)) {
-                    return done(null, false);
-                }
-  
-                User.findOne({
-                    id: accessToken.userId
-                }, function(error, user) {
-                    if (error) {
-                        console.log("errore [2] all'authentication");
-                        return done(error);
-                    }
-  
-                    if (!user) {
-                        return done(null, false);
-                    }
-                    console.log("errore [3] all'authentication");
-                    
-                    return done(null, user);
-                });
-            } else {
-                console.log("Errore completo");
-                return done(null);
-            }
-        });
+//  Accesso alla pagina di ricerca - verifica se utente loggato
+app.get("/searchPage", function(req,res){
+    console.log("Richiesta pagina di ricerca");
+    if(!req.session.loggedin){
+        console.log("Richiesta NEGATA");
+        res.redirect("http://localhost:5500/loginPage/login.html");
+        return;
+    } else {
+        console.log("Richiesta ACCONSENTITA");
+        res.redirect("http://localhost:5500/request/request.html")
     }
-));*/
-
-
-//  Parte di autenticazione
-/*app.post('/passport/auth',
-    passport.authenticate('local-token', {
-        session: false,
-        optional: false
-    }),
-    function(req, res) {
-        console.log("authenticated!");
-        res.redirect('homePage/homepage.html');
-    }
-);*/
-
-/*app.use(express.static('request'));
-
-app.get("/prova", function(req, res){
-    res.sendFile('request.html', {root: __dirname });
-    
-})*/
+    console.log();
+});
 
 //  Ricerca libro
 app.get('/search', function(req, res){
@@ -176,54 +131,6 @@ app.get('/code', function (req, res) {
 			my_obj=JSON.parse(body);
             token = my_obj.access_token;
             console.log("\n");
-            /*passport.authenticate('local-token', {
-                tokenField: my_obj.access_token,
-                session: false,
-                optional: false,
-                successRedirect: 'http://localhost:5500/homePage/homepage.html',
-                failureRedirect: 'http://localhost:5500/loginPage/loginPage.html',
-                failureFlash: true,
-            }),*/
-            
-            //done(null, false, { message: 'Incorrect password.' });
-            /*new LocalStrategy(function(token, done) {
-                AccessToken.findOne({
-                    id: my_obj.access_token
-                }, function(error, accessToken) {
-                    if (error) {
-                        console.log("errore all'authentication");
-                        return done(error);
-                    }
-            
-                    if (accessToken) {
-                        console.log("entro in authentication...");
-                        if (!token.isValid(accessToken)) {
-                            return done(null, false);
-                        }
-            
-                        User.findOne({
-                            id: accessToken.userId
-                        }, function(error, user) {
-                            if (error) {
-                                console.log("errore [2] all'authentication");
-                                return done(error);
-                            }
-            
-                            if (!user) {
-                                return done(null, false);
-                            }
-                            console.log("errore [3] all'authentication");
-                            
-                            return done(null, user);
-                        });
-                    } else {
-                        console.log("Errore completo");
-                        return done(null);
-                    }
-                });
-            });*/
-
-
 
             //  Richiesta per la email dell'utente appena loggato
             request2server.get({
@@ -261,8 +168,8 @@ app.get('/code', function (req, res) {
                     });
                     
                     //  Inserimento email nel database
-                    const queryy = "INSERT INTO users (email, password) SELECT * FROM (SELECT '" + email + "', 'null') AS Tmp WHERE NOT EXISTS (SELECT email FROM users WHERE email = '" + email + "') LIMIT 1;"
-                    client.query(queryy, function(err, res) {
+                    const query2 = "INSERT INTO users (email, password) SELECT * FROM (SELECT '" + email + "', 'null') AS Tmp WHERE NOT EXISTS (SELECT email FROM users WHERE email = '" + email + "') LIMIT 1;"
+                    client.query(query2, function(err, res) {
 
                         if (err) {
                             console.error("Inserimento fallito: " + err);
@@ -272,9 +179,114 @@ app.get('/code', function (req, res) {
                         client.end();
                     });
                 });
-            //res.redirect("/passport/auth?token=" + token);
         });
+});
 
+
+// Manual registration
+app.post("/register", function(req, result){
+    console.log("Registrazione manuale");
+    var isRegister = false;
+    const client = new Client({
+        user: 'postgres',
+        host: process.env.HOST,
+        database: process.env.DATABASE,
+        password: process.env.PASSWORD,
+        port: process.env.PORT,
+    });
+
+    client.connect(function(err){
+        if (err) {
+            console.log('Connessione non stabilita - error: ', err.stack);
+            return;
+        } else {
+          console.log('Connessione al DB stabilita');
+        }
+    });
+
+    const query3 = "SELECT * FROM users WHERE email='" + req.body.inputEmail + "'"
+    client.query(query3, function(err, res){
+        if (err) {  //  Errore durante la query
+            console.log("Inserimento [1] fallito: " + err);
+            result.redirect("http://localhost:5500/error_general.html");
+            client.end();
+            return;
+        } else if (res.rowCount > 0){   //  Utente già registrato
+            console.log("Utente già registrato");
+            result.redirect("http://localhost:5500/error_register.html");
+            client.end();
+            return;
+        } else {    //  Utente ancora non presente nel database
+            const query4 = "INSERT INTO users VALUES ('" + req.body.inputEmail + "','" + req.body.inputPassword + "')";
+            client.query(query4, function(err, res){
+                if (err) {  //  Errore durante la query
+                    console.log("Inserimento [2] fallito: " + err);
+                    result.redirect("http://localhost:5500/error_general.html");
+                    return;
+                } else {    //  Inserimento avvenuto con successo
+                    console.log("Inserimento avvenuto con successo: " + req.body.inputEmail);
+
+                    req.session.loggedin = true;
+                    req.session.email = req.body.inputEmail;
+                    console.log("Session: log_" + req.session.loggedin + " <> user_"+ req.session.email);
+                    result.redirect('http://localhost:5500/request/request.html');
+
+                    return;
+                }
+                client.end();
+            });
+        }
+    });
+
+    console.log("email: " + req.body.inputEmail);
+    console.log("password: " + req.body.inputPassword);
+});
+
+
+// Manual Login
+app.post("/login", function(req, result){
+
+    console.log("Login manuale");
+    var isRegister = false;
+    const client = new Client({
+        user: 'postgres',
+        host: process.env.HOST,
+        database: process.env.DATABASE,
+        password: process.env.PASSWORD,
+        port: process.env.PORT,
+    });
+
+    client.connect(function(err){
+        if (err) {
+            console.log('Connessione non stabilita - error: ', err.stack);
+            return;
+        } else {
+          console.log('Connessione al DB stabilita');
+        }
+    });
+
+
+    const query3 = "SELECT * FROM users WHERE email='" + req.body.inputEmail + "' and password='" + req.body.inputPassword + "'";
+    client.query(query3, function(err, res){
+        if (err) {
+            console.log("Ricerca in DB fallita: " + err);
+            result.redirect("http://localhost:5500/error_general.html");
+            client.end();
+            return;
+        } else if (res.rowCount > 0){
+            console.log("Utente trovato");
+            req.session.loggedin = true;
+            req.session.email = req.body.inputEmail;
+            console.log("Session: log_" + req.session.loggedin + " <> user_"+ req.session.email);
+            result.redirect('http://localhost:5500/request/request.html');
+
+            client.end();
+            return;
+        } else {
+            console.log("Utente non trovato");
+            result.redirect("http://localhost:5500/error_login.html");
+        }
+    });
 });
 
 var server = app.listen(port, function(){
@@ -283,81 +295,4 @@ var server = app.listen(port, function(){
 
     console.log('Server in ascolto su http://%s:%s', host, port);
 });
-
-/*
-//-----------------------------------------------------------------
-
-var WebSocketServer = require('websocket').server;
-var http = require('http');
-
-var server = http.createServer(function(request, response) {
-  // process HTTP request. Since we're writing just WebSockets
-  // server we don't have to implement anything.
-});
-server.listen(1337, function() { });
-
-// create the server
-wsServer = new WebSocketServer({
-  httpServer: server
-});
-
-// WebSocket server
-wsServer.on('request', function(request) {
-  var connection = request.accept(null, request.origin);
-
-  // This is the most important callback for us, we'll handle
-  // all messages from users here.
-  connection.on('message', function(message) {
-    if (message.type === 'utf8') {
-      // process WebSocket message
-    }
-  });
-
-  connection.on('close', function(connection) {
-    // close user connection
-  });
-});
-
-//---------------------------------------------------------------
-
-// Port where we'll run the websocket server
-var webSocketsServerPort = 1337;
-// websocket and http servers
-var webSocketServer = require('websocket').server;
-var http = require('http');
-
-//HTTP server
- 
-var server = http.createServer(function(request, response) {
-    // Not important for us. We're writing WebSocket server,
-    // not HTTP server
-  });
-  server.listen(webSocketsServerPort, function() {
-    console.log((new Date()) + " Server is listening on port "
-        + webSocketsServerPort);
-  });
-
-  //WebSocket server
-  var wsServer = new webSocketServer({
-    // WebSocket server is tied to a HTTP server. WebSocket
-    // request is just an enhanced HTTP request. For more info 
-    // http://tools.ietf.org/html/rfc6455#page-6
-    httpServer: server
-  });
-  // This callback function is called every time someone
-  // tries to connect to the WebSocket server
-  wsServer.on('request', function(request) {
-    console.log((new Date()) + ' Connection from origin '
-        + request.origin + '.');
-  });
-
-  // accept connection - you should check 'request.origin' to
-  // make sure that client is connecting from your website
-  // (http://en.wikipedia.org/wiki/Same_origin_policy)
-  var connection = request.accept(null, request.origin); 
-  // we need to know client index to remove them on 'close' event
-  var index = clients.push(connection) - 1;
-  var userName = false;
-  console.log((new Date()) + ' Connection accepted.');
-*/
 

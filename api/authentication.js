@@ -4,6 +4,9 @@ var request2server = require('request');
 var express = require('express');
 var router = express.Router();
 var bodyparser = require('body-parser');
+// Da vedere meglio
+const checkAuth = require("./main.js");
+const { Client } = require('pg');
 
 router.use(bodyparser.json());
 
@@ -14,7 +17,7 @@ var getEmail = "https://accounts.google.com/o/oauth2/auth?client_id="+client_id+
 
 
 //  Callback (Get Token from Code)
-router.get('/code', function (req, res) {
+router.get('/codeToReview', function (req, res) {
 
     //  Sessione
 
@@ -22,7 +25,7 @@ router.get('/code', function (req, res) {
     code = req.query.code;
     var url = 'https://www.googleapis.com/oauth2/v3/token';
 	var headers = {'Content-Type': 'application/x-www-form-urlencoded'};
-	var body = "code="+code+"&client_id="+client_id+"&client_secret="+client_secret+"&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Fcode&grant_type=authorization_code";
+	var body = "code="+code+"&client_id="+client_id+"&client_secret="+client_secret+"&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Fauth%2Fcode&grant_type=authorization_code";
     
     //  Chiamata a API: Google OAuth 2 (per l'autenticazione)
     request2server.post({
@@ -51,9 +54,13 @@ router.get('/code', function (req, res) {
                     email = (JSON.parse(body)).email;
                     console.log("Email utente loggato: " + email);
 
-                    req.session.loggedin = true;
+                    /*req.session.loggedin = true;
                     req.session.email = email;
-                    console.log("Session: log_" + req.session.loggedin + " <> user_"+ req.session.email);
+
+                    console.log("Session: log_" + req.session.loggedin + " <> user_"+ req.session.email);*/
+
+                    //  Da rivedere meglio
+                    //checkAuth.settingLog(req);
                     res.redirect('http://localhost:5500/request/request.html');
 
                     const client = new Client({
