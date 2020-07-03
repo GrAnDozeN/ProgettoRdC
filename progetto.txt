@@ -25,6 +25,11 @@ tecnologie usate, come installarlo, come far girare i casi di test
 7. Le API REST implementate in SERV devono essere documentate su GIT e devono essere validate con un caso di test
 
 
+GET:
+-   inSearch
+-   code
+-   searchPage
 
-DA SISTEMARE
-- in request/request.js -> alla connessione, sistemare lo user, prenderlo da .env
+POST:
+-   login
+-   register
