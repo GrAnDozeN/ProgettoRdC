@@ -17,6 +17,7 @@ Sviluppatori:
 - Tecnologie utilizzate
 
     REST 1: Google Books
+    
     REST 2: Google (OAuth2.0)
     
     WebSocket: Chat
