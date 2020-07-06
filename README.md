@@ -15,6 +15,7 @@ Sviluppatori:
     7. Le API REST implementate in SERV devono essere documentate su un GIT e devono essere validate con un caso di test
 
 - Tecnologie utilizzate
+
     REST 1: Google Books
     REST 2: Google (OAuth2.0)
     
@@ -24,6 +25,7 @@ Sviluppatori:
     Il back-end è scritto in Nodejs e si occupa di gestire la ricerca dei libri, il login, la chat, mentre il front-end è scritto in html, con metodi JS, Ajax, JQuery, e si occupa principalmente della parte grafica e degli script ad essa legati
 
 - Descrizione progettuale
+
     La nostra applicazione web BookShell permette, dopo essersi loggati con un account Google, o tramite diretta registrazione al sito, di ricercare libri accedendo al catalogo messo a disposizione da Google stesso. Prima di effettuare la ricerca è messa a disposizione una chat dove gli utenti possono comunicare e scambiarsi consigli e pareri sulle prossime letture da fare o semplicemente creare un punto di ritrovo tra bibliofili. 
     Si può effettuare la ricerca inserendo solamente il titolo o l'autore del libro desiderato, così come entrambi, in modo che sia più accurata. Cliccando sulla copertina del libro d'interesse si viene rediretti sul sito di Google ove si avrà la disponibilità del libro, l'edizione, la possibilità di scaricare l'ebook, leggere l'anteprima o semplicemente comprarlo.
  
@@ -35,12 +37,14 @@ Sviluppatori:
     Le API fornite e documentate tramite Swagger si possono accedere su http://localhost:8080/docs scrivendo "node index.js" su terminale dalla cartella node-server-swagger.
 
 - API documentazione
+
     API LIBRI https://developers.google.com/books/docs/v1/using
               https://developers.google.com/books/docs/v1/reference/volumes
 
     API OAuth https://developers.google.com/identity/protocols/oauth2/web-server
 
 - Come avviare il progetto
+
     Per scaricare il progetto si può clonare la repository git con il comando git clone https://github.com/GrAnDozeN/ProgettoRdC
 
     I moduli necessari all'applicazione sono:
