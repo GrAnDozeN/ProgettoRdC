@@ -52,14 +52,23 @@ Sviluppatori:
     Per scaricare il progetto si può clonare la repository git con il comando git clone https://github.com/GrAnDozeN/ProgettoRdC
 
     I moduli necessari all'applicazione sono:
+    
     •   npm install express
+    
     •   npm install request
+    
     •   npm install body-parser
+    
     •   npm install dotenv
+    
     •   npm install pg
+    
     •   npm install express-session
+    
     •   npm install websocket
+    
     •   npm install http
+    
     •   npm install cors
 
     url server : http://localhost:8888
