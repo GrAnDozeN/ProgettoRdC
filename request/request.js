@@ -8,19 +8,11 @@ var bodyparser = require('body-parser');
 const {
     Client
 } = require('pg');
-var passport = require("passport");
-var LocalStrategy = require('passport-local-token').Strategy;
+
 const cors = require("cors");
+var path = require("path");
 
 app.use(cors());
-
-/*var books = require("./books");
-var auth = require("./authentication");
-
-app.use("/books", books);
-app.use("/auth", auth);
-*/
-
 
 app.use(express.json()); // to support JSON-encoded bodies
 app.use(express.urlencoded({
@@ -33,8 +25,6 @@ var code = "";
 var token = "";
 var client_id = process.env.ID_APP_G;
 var client_secret = process.env.CLIENT_SECRET_G;
-var getEmail = "https://accounts.google.com/o/oauth2/auth?client_id=" + client_id + "&scope=https://www.googleapis.com/auth/userinfo.email&redirect_uri=http://localhost:8888/&response_type=code";
-var user = "";
 
 
 app.use(session({
@@ -43,16 +33,34 @@ app.use(session({
     saveUninitialized: true
 }));
 
+app.use('/public', express.static(__dirname + '/public'));
+
 //  Accesso alla pagina di ricerca - verifica se utente loggato
-app.get("/searchPage", function (req, res) {
+app.get("/search", function (req, res) {
     console.log("Richiesta pagina di ricerca");
     if (!req.session.loggedin) {
-        res.redirect("http://localhost:5500/loginPage/login.html");
+        res.redirect("http://localhost:8888/login");
         return;
     } else {
-        res.redirect("http://localhost:5500/request/request.html")
+        res.sendFile('./request.html', { root: __dirname });
     }
     console.log();
+});
+
+app.get("/error_register", function(req, res){
+    res.sendFile('./error_register.html', { root: __dirname });
+})
+
+app.get("/homePage", function (req, res) {
+    res.sendFile('./homepage.html', { root: __dirname + '/public/Homepage' });
+});
+
+app.get("/login", function (req, res) {
+    res.sendFile('./login.html', { root: __dirname + '/public/Login' });
+});
+
+app.get("/", function (req, res) {
+    res.redirect("http://localhost:8888/homePage");
 });
 
 
@@ -106,66 +114,13 @@ app.get('/inSearch', function (req, res) {
                 res.json(data);
             } else { //  Caso in cui libri non trovati
                 console.log("Libri non trovati");
-                res.redirect('http://localhost:5500/error.html');
+                data["totalBooks"] = 0;
+                res.status(200);
+                res.json(data);
             }
         }
     });
 });
-
-
-//  Ricerca libro
-/*app.get('/search', function (req, res) {
-    if (!req.session.loggedin) {
-        res.redirect("http://localhost:5500/loginPage/login.html");
-        return;
-    }
-
-    var quer = "";
-    if (req.query.title)
-        quer += ("+intitle:" + req.query.title);
-    if (req.query.author)
-        quer += ("+inauthor:" + req.query.author);
-
-    console.log("Ricercando Libri per: " + quer);
-
-    //  Richiesta alla API: Google Books
-    request2server({
-        url: 'https://www.googleapis.com/books/v1/volumes?q=' + quer + '&maxResults=40&printType=books&key=' + process.env.BOOK_KEY,
-        method: 'GET',
-    }, function (error, response, body) {
-        if (error) console.log(error);
-        else {
-
-            var jsonBody = JSON.parse(body);
-            var imageLists = '';
-
-            if (jsonBody.totalItems > 0) {
-                console.log("Libri trovati: " + jsonBody.totalItems);
-                if (jsonBody.totalItems < 40)
-                    var l = jsonBody.totalItems;
-                else
-                    var l = 40;
-
-                for (var i = 0; i < l; i++) {
-                    if (jsonBody.items[i].volumeInfo.hasOwnProperty("imageLinks")) {
-                        console.log("img %s trovata", i);
-                        var link = jsonBody.items[i].volumeInfo.infoLink;
-                        var img = jsonBody.items[i].volumeInfo.imageLinks.thumbnail;
-                        imageLists += '<a href="' + link + '"><img style="height:200px; margin-right:30px; margin-bottom:30px; border:solid black 1px; border-radius:5px" src="' + img + '"></a>';
-                    } else
-                        console.log("img %s non trovata", i);
-                }
-
-                res.send(imageLists);
-
-            } else {
-                console.log("Libri non trovati");
-                res.redirect('http://localhost:5500/error.html');
-            }
-        }
-    });
-});*/
-
 
 
 //  Callback (Get Token from Code)
@@ -192,7 +147,7 @@ app.get('/code', function (req, res) {
     }, function (error, response, body) {
 
         //  Pagina dopo aver ottenuto il token
-        //res.redirect('http://localhost:5500/request/request.html');
+        //res.redirect('http://localhost:8888/request/request.html');
         my_obj = JSON.parse(body);
         token = my_obj.access_token;
         console.log("\n");
@@ -213,7 +168,7 @@ app.get('/code', function (req, res) {
             req.session.loggedin = true;
             req.session.email = email;
             console.log("Session: log_" + req.session.loggedin + " <> user_" + req.session.email);
-            res.redirect('http://localhost:5500/request/request.html');
+            res.redirect('http://localhost:8888/Search');
 
             const client = new Client({
                 user: 'postgres',
@@ -273,12 +228,12 @@ app.post("/register", function (req, result) {
     client.query(query3, function (err, res) {
         if (err) { //  Errore durante la query
             console.log("Inserimento [1] fallito: " + err);
-            result.redirect("http://localhost:5500/error_general.html");
+            result.sendFile('./error_general.html', { root: __dirname + '/public/ErrorPages' });
             client.end();
             return;
         } else if (res.rowCount > 0) { //  Utente già registrato
             console.log("Utente già registrato");
-            result.redirect("http://localhost:5500/error_register.html");
+            result.sendFile('./error_register.html', { root: __dirname + '/public/ErrorPages' });
             client.end();
             return;
         } else { //  Utente ancora non presente nel database
@@ -286,7 +241,7 @@ app.post("/register", function (req, result) {
             client.query(query4, function (err, res) {
                 if (err) { //  Errore durante la query
                     console.log("Inserimento [2] fallito: " + err);
-                    result.redirect("http://localhost:5500/error_general.html");
+                    result.sendFile('./error_general.html', { root: __dirname + '/public/ErrorPages' });
                     return;
                 } else { //  Inserimento avvenuto con successo
                     console.log("Inserimento avvenuto con successo: " + req.body.inputEmail);
@@ -294,7 +249,7 @@ app.post("/register", function (req, result) {
                     req.session.loggedin = true;
                     req.session.email = req.body.inputEmail;
                     console.log("Session: log_" + req.session.loggedin + " <> user_" + req.session.email);
-                    result.redirect('http://localhost:5500/request/request.html');
+                    result.redirect('http://localhost:8888/Search');
 
                     return;
                 }
@@ -335,7 +290,7 @@ app.post("/login", function (req, result) {
     client.query(query3, function (err, res) {
         if (err) {
             console.log("Ricerca in DB fallita: " + err);
-            result.redirect("http://localhost:5500/error_general.html");
+            result.sendFile('./error_general.html', { root: __dirname + '/public/ErrorPages' });
             client.end();
             return;
         } else if (res.rowCount > 0) {
@@ -343,13 +298,13 @@ app.post("/login", function (req, result) {
             req.session.loggedin = true;
             req.session.email = req.body.inputEmail;
             console.log("Session: log_" + req.session.loggedin + " <> user_" + req.session.email);
-            result.redirect('http://localhost:5500/request/request.html');
+            result.redirect('http://localhost:8888/Search');
 
             client.end();
             return;
         } else {
             console.log("Utente non trovato");
-            result.redirect("http://localhost:5500/error_login.html");
+            result.sendFile('./error_login.html', { root: __dirname + '/public/ErrorPages' });
         }
     });
 });
@@ -359,4 +314,8 @@ var server = app.listen(port, function () {
     var port = server.address().port;
 
     console.log('Server in ascolto su http://%s:%s', host, port);
+});
+
+app.get("/error_general", function(req, res){
+    res.sendFile('./error_general.html', { root: __dirname + '/public/ErrorPages' });
 });
