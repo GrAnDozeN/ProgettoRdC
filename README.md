@@ -1,8 +1,11 @@
 BookShell - Progetto Reti di Calcolatori 2020
 
 Sviluppatori:
+
 •   Federico Montanari 1762065
+
 •   Alessandro Garbetta 1785139
+
 •   Christian Realin Ramilo 1793265
 
 - Requisiti
