@@ -264,7 +264,7 @@ app.post("/register", function (req, result) {
 });
 
 
-//**************LOGIN LOCALE**************/
+/**************LOGIN LOCALE**************/
 app.post("/login", function (req, result) {
 
     console.log("Login locale");
@@ -305,6 +305,14 @@ app.post("/login", function (req, result) {
             result.sendFile('./error_login.html', { root: __dirname + '/public/ErrorPages' });
         }
     });
+});
+
+/**************LOGOUT**************/
+app.get("/logout", function(req,res){
+    if (req.session.loggedin) {
+        req.session.loggedin = false;
+    };
+    res.redirect('http://localhost:8888/');
 });
 
 var server = app.listen(port, function () {

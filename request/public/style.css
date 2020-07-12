@@ -1,8 +1,5 @@
 * {
-    outline: none;
-}
-html, body {
-    height: 100%;
+    box-sizing:inherit;
 }
 body {
     height: 100%;
