@@ -14,10 +14,10 @@ var path = require("path");
 
 app.use(cors());
 
-app.use(express.json()); // to support JSON-encoded bodies
+app.use(express.json()); // per gestire file JSON
 app.use(express.urlencoded({
     extended: true
-})) // to support URL-encoded bodies
+})) // per gestire URL provenienti dal browser
 
 //  Var locali
 var port = 8888;
@@ -26,7 +26,7 @@ var token = "";
 var client_id = process.env.ID_APP_G;
 var client_secret = process.env.CLIENT_SECRET_G;
 
-
+/**************CONTROLLO LOG UTENTE**************/
 app.use(session({
     secret: 'secret',
     resave: true,
@@ -47,10 +47,16 @@ app.get("/search", function (req, res) {
     console.log();
 });
 
+/**************PAGINE DI ERRORE**************/
 app.get("/error_register", function(req, res){
     res.sendFile('./error_register.html', { root: __dirname });
 })
 
+app.get("/error_general", function(req, res){
+    res.sendFile('./error_general.html', { root: __dirname + '/public/ErrorPages' });
+});
+
+/**************RICHIESTE PAGINE PRINCIPALI**************/
 app.get("/homePage", function (req, res) {
     res.sendFile('./homepage.html', { root: __dirname + '/public/Homepage' });
 });
@@ -63,10 +69,8 @@ app.get("/", function (req, res) {
     res.redirect("http://localhost:8888/homePage");
 });
 
-
-//  Ricerca libro (JSON)
+/**************Ricerca libro (JSON) tramite GOOGLE BOOKS**************/
 app.get('/inSearch', function (req, res) {
-
 
     //  Ricezione dei dati
     var quer = "";
@@ -96,8 +100,8 @@ app.get('/inSearch', function (req, res) {
                     var l = jsonBody.totalItems;
                 else
                     var l = 40;
-
                 for (var i = 0; i < l; i++) {
+                    //inseriemento libri nella risposta JSON
                     if (jsonBody.items[i].volumeInfo.hasOwnProperty("imageLinks")) {
                         var title = jsonBody.items[i].volumeInfo.title;
                         var link = jsonBody.items[i].volumeInfo.infoLink;
@@ -122,11 +126,9 @@ app.get('/inSearch', function (req, res) {
     });
 });
 
-
+/**************LOGIN CON GOOGLE (Autorizathion Code Grant)**************/
 //  Callback (Get Token from Code)
 app.get('/code', function (req, res) {
-
-    //  Sessione
 
     //  Var iniziali
     code = req.query.code;
@@ -136,7 +138,7 @@ app.get('/code', function (req, res) {
     };
     var body = "code=" + code + "&client_id=" + client_id + "&client_secret=" + client_secret + "&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Fcode&grant_type=authorization_code";
 
-    //  Chiamata a API: Google OAuth 2 (per l'autenticazione)
+    //  Chiamata API: Google OAuth 2 (per ottenere il token)
     request2server.post({
 
         //informazioni che invio all’Authorization Server
@@ -147,7 +149,6 @@ app.get('/code', function (req, res) {
     }, function (error, response, body) {
 
         //  Pagina dopo aver ottenuto il token
-        //res.redirect('http://localhost:8888/request/request.html');
         my_obj = JSON.parse(body);
         token = my_obj.access_token;
         console.log("\n");
@@ -170,6 +171,7 @@ app.get('/code', function (req, res) {
             console.log("Session: log_" + req.session.loggedin + " <> user_" + req.session.email);
             res.redirect('http://localhost:8888/Search');
 
+            // Inserimento email utente in DB
             const client = new Client({
                 user: 'postgres',
                 host: process.env.HOST,
@@ -190,7 +192,6 @@ app.get('/code', function (req, res) {
             //  Inserimento email nel database
             const query2 = "INSERT INTO users (email, password) SELECT * FROM (SELECT '" + email + "', 'null') AS Tmp WHERE NOT EXISTS (SELECT email FROM users WHERE email = '" + email + "') LIMIT 1;"
             client.query(query2, function (err, res) {
-
                 if (err) {
                     console.error("Inserimento fallito: " + err);
                     return;
@@ -202,11 +203,12 @@ app.get('/code', function (req, res) {
     });
 });
 
-
-// Manual registration
+/**************REGISTRAZIONE LOCALE**************/
 app.post("/register", function (req, result) {
-    console.log("Registrazione manuale");
+    console.log("Registrazione locale");
     var isRegister = false;
+
+    // Inserimento email utente in DB
     const client = new Client({
         user: 'postgres',
         host: process.env.HOST,
@@ -245,12 +247,11 @@ app.post("/register", function (req, result) {
                     return;
                 } else { //  Inserimento avvenuto con successo
                     console.log("Inserimento avvenuto con successo: " + req.body.inputEmail);
-
+                    // Login automatico
                     req.session.loggedin = true;
                     req.session.email = req.body.inputEmail;
                     console.log("Session: log_" + req.session.loggedin + " <> user_" + req.session.email);
                     result.redirect('http://localhost:8888/Search');
-
                     return;
                 }
                 client.end();
@@ -263,11 +264,10 @@ app.post("/register", function (req, result) {
 });
 
 
-// Manual Login
+//**************LOGIN LOCALE**************/
 app.post("/login", function (req, result) {
 
-    console.log("Login manuale");
-    var isRegister = false;
+    console.log("Login locale");
     const client = new Client({
         user: 'postgres',
         host: process.env.HOST,
@@ -285,7 +285,6 @@ app.post("/login", function (req, result) {
         }
     });
 
-
     const query3 = "SELECT * FROM users WHERE email='" + req.body.inputEmail + "' and password='" + req.body.inputPassword + "'";
     client.query(query3, function (err, res) {
         if (err) {
@@ -293,13 +292,12 @@ app.post("/login", function (req, result) {
             result.sendFile('./error_general.html', { root: __dirname + '/public/ErrorPages' });
             client.end();
             return;
-        } else if (res.rowCount > 0) {
+        } else if (res.rowCount > 0) { 
             console.log("Utente trovato");
             req.session.loggedin = true;
             req.session.email = req.body.inputEmail;
             console.log("Session: log_" + req.session.loggedin + " <> user_" + req.session.email);
             result.redirect('http://localhost:8888/Search');
-
             client.end();
             return;
         } else {
@@ -314,8 +312,4 @@ var server = app.listen(port, function () {
     var port = server.address().port;
 
     console.log('Server in ascolto su http://%s:%s', host, port);
-});
-
-app.get("/error_general", function(req, res){
-    res.sendFile('./error_general.html', { root: __dirname + '/public/ErrorPages' });
 });
